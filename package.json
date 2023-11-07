@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "deep-object-diff": "^1.1.9",
+    "ws": "^8.14.2"
+  },
+  "name": "js_tracer_test",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "jsTracerTest.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
