@@ -3,6 +3,7 @@ let x = {
     randomAddress: Array(19).fill(87).concat([1]),
     setup: function(config) {
         this.trace.push(config);
+        this.count = 0;
         this.hash = toWord(Array(31).fill(1).concat([1]));
         this.previousStackLength = 0;
         this.previousMemoryLength = 0;
@@ -39,6 +40,24 @@ let x = {
             let newMemorySlice = memoryExpanded ? log.memory.slice(Math.max(this.previousMemoryLength, currentMemoryLength - 10), currentMemoryLength) : [];
             let newMemoryItem = memoryExpanded && currentMemoryLength >= 32 ? log.memory.getUint(currentMemoryLength - 32) : 0;
 
+            if (this.count == 0) {
+                this.trace.push({
+                    "contract": {
+                        "caller": log.contract.getCaller(),
+                        "address": toAddress(toHex(contractAddress)),
+                        "value": log.contract.getValue(),
+                        "input": log.contract.getInput(),
+                        "balance": db.getBalance(contractAddress),
+                        "nonce": db.getNonce(contractAddress),
+                        "code": db.getCode(contractAddress),
+                        "state": db.getState(contractAddress, this.hash),
+                        "stateString": db.getState(contractAddress, this.hash).toString(16),
+                        "exists": db.exists(contractAddress),
+                        "randomexists": db.exists(this.randomAddress)
+                    }
+                });
+            }
+
             this.trace.push({
                 "op": {
                     "isPush": log.op.isPush(),
@@ -57,19 +76,6 @@ let x = {
                     "newMemoryItem": newMemoryItem,
                     "length": currentMemoryLength
                 },
-                "contract": {
-                    "caller": log.contract.getCaller(),
-                    "address": toAddress(toHex(contractAddress)),
-                    "value": log.contract.getValue(),
-                    "input": log.contract.getInput(),
-                    "balance": db.getBalance(contractAddress),
-                    "nonce": db.getNonce(contractAddress),
-                    "code": db.getCode(contractAddress),
-                    "state": db.getState(contractAddress, this.hash),
-                    "stateString": db.getState(contractAddress, this.hash).toString(16),
-                    "exists": db.exists(contractAddress),
-                    "randomexists": db.exists(this.randomAddress)
-                },
                 "pc": log.getPC(),
                 "gas": log.getGas(),
                 "cost": log.getCost(),
@@ -78,6 +84,7 @@ let x = {
             });
             this.previousStackLength = currentStackLength;
             this.previousMemoryLength = currentMemoryLength;
+            this.count++;
         }
         else {
             this.trace.push({"error": log.getError()});
