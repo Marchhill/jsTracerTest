@@ -4,27 +4,32 @@ let x = {
     setup: function(config) {
         this.trace["config"] = config;
         this.trace["step"] = [];
+        this.trace["callStack"] = [];
         this.count = 0;
         this.hash = toWord(Array(31).fill(1).concat([1]));
         this.previousStackLength = 0;
         this.previousMemoryLength = 0;
     },
     enter: function(callFrame) {
-        this.trace["enter"] = {
-            "type": callFrame.getType(),
-            "from": callFrame.getFrom(),
-            "to": callFrame.getTo(),
-            "input": callFrame.getInput(),
-            "gas": callFrame.getGas(),
-            "value": callFrame.getValue()
-        };
+        this.trace["callStack"].push({
+            "enter": {
+                "type": callFrame.getType(),
+                "from": callFrame.getFrom(),
+                "to": callFrame.getTo(),
+                "input": callFrame.getInput(),
+                "gas": callFrame.getGas(),
+                "value": callFrame.getValue()
+            }
+        });
     },
     exit: function(frameResult) {
-        this.trace["exit"] = {
-            "gasUsed": frameResult.getGasUsed(),
-            "output": frameResult.getOutput(),
-            "error": frameResult.getError()
-        };
+        this.trace["callStack"].push({
+            "exit": {
+                "gasUsed": frameResult.getGasUsed(),
+                "output": frameResult.getOutput(),
+                "error": frameResult.getError()
+            }
+        });
     },
     step: function(log, db) {
         if (log.getError() === undefined) {
