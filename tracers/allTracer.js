@@ -1,29 +1,30 @@
 let x = {
-    trace: [],
+    trace: {},
     randomAddress: Array(19).fill(87).concat([1]),
     setup: function(config) {
-        this.trace.push(config);
+        this.trace["config"] = config;
+        this.trace["step"] = [];
         this.count = 0;
         this.hash = toWord(Array(31).fill(1).concat([1]));
         this.previousStackLength = 0;
         this.previousMemoryLength = 0;
     },
     enter: function(callFrame) {
-        this.trace.push({
+        this.trace["enter"] = {
             "type": callFrame.getType(),
             "from": callFrame.getFrom(),
             "to": callFrame.getTo(),
             "input": callFrame.getInput(),
             "gas": callFrame.getGas(),
             "value": callFrame.getValue()
-        });
+        };
     },
     exit: function(frameResult) {
-        this.trace.push({
+        this.trace["exit"] = {
             "gasUsed": frameResult.getGasUsed(),
             "output": frameResult.getOutput(),
             "error": frameResult.getError()
-        });
+        };
     },
     step: function(log, db) {
         if (log.getError() === undefined) {
@@ -41,24 +42,22 @@ let x = {
             let newMemoryItem = memoryExpanded && currentMemoryLength >= 32 ? log.memory.getUint(currentMemoryLength - 32) : 0;
 
             if (this.count == 0) {
-                this.trace.push({
-                    "contract": {
-                        "caller": log.contract.getCaller(),
-                        "address": toAddress(toHex(contractAddress)),
-                        "value": log.contract.getValue(),
-                        "input": log.contract.getInput(),
-                        "balance": db.getBalance(contractAddress),
-                        "nonce": db.getNonce(contractAddress),
-                        "code": db.getCode(contractAddress),
-                        "state": db.getState(contractAddress, this.hash),
-                        "stateString": db.getState(contractAddress, this.hash).toString(16),
-                        "exists": db.exists(contractAddress),
-                        "randomexists": db.exists(this.randomAddress)
-                    }
-                });
+                this.trace["contract"] = {
+                    "caller": log.contract.getCaller(),
+                    "address": toAddress(toHex(contractAddress)),
+                    "value": log.contract.getValue(),
+                    "input": log.contract.getInput(),
+                    "balance": db.getBalance(contractAddress),
+                    "nonce": db.getNonce(contractAddress),
+                    "code": db.getCode(contractAddress),
+                    "state": db.getState(contractAddress, this.hash),
+                    "stateString": db.getState(contractAddress, this.hash).toString(16),
+                    "exists": db.exists(contractAddress),
+                    "randomexists": db.exists(this.randomAddress)
+                };
             }
 
-            this.trace.push({
+            this.trace["step"].push({
                 "op": {
                     "isPush": log.op.isPush(),
                     "asString": log.op.toString(),
@@ -78,7 +77,8 @@ let x = {
                 },
                 "pc": log.getPC(),
                 "gas": log.getGas(),
-                "cost": log.getCost(),
+                // known difference between geth and nethermind gas costs
+                // "cost": log.getCost(),
                 "depth": log.getDepth(),
                 "refund": log.getRefund()
             });
@@ -87,15 +87,15 @@ let x = {
             this.count++;
         }
         else {
-            this.trace.push({"error": log.getError()});
+            this.trace["step"].push({"error": log.getError()});
         }
     },
     result: function(ctx, db) {
         let ctxToAddress = toAddress(toHex(ctx.to));
-        this.trace.push({
+        this.trace["result"] = {
             "ctx": {
                 "type": ctx.type,
-                // "from": ctx.from,
+                "from": ctx.from,
                 "to": ctx.to,
                 "input": ctx.input,
                 "gas": ctx.gas,
@@ -114,7 +114,7 @@ let x = {
                 "exists": db.exists(ctxToAddress),
                 "randomexists": db.exists(this.randomAddress)
             }
-        });
+        };
         return this.trace;
     },
     fault: function(log, db) {
