@@ -82,8 +82,7 @@ let x = {
                 },
                 "pc": log.getPC(),
                 "gas": log.getGas(),
-                // known difference between geth and nethermind gas costs
-                // "cost": log.getCost(),
+                "cost": log.getCost(),
                 "depth": log.getDepth(),
                 "refund": log.getRefund()
             });
@@ -93,6 +92,13 @@ let x = {
         }
         else {
             this.trace["step"].push({"error": log.getError()});
+        }
+    },
+    postStep: function(log, db) {
+        let lastStep = this.trace["step"].at(-1);
+        if (lastStep["cost"] !== undefined) {
+            lastStep["cost"] = log.getCost();
+            lastStep["refund"] = log.getRefund();
         }
     },
     result: function(ctx, db) {
