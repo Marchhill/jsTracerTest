@@ -88,14 +88,12 @@ let x = {
                 },
                 "pc": log.getPC(),
                 "gas": log.getGas(),
-                // potential bug?
-                // "cost": log.getCost(),
+                "cost": log.getCost(),
                 "depth": log.getDepth(),
                 "refund": log.getRefund()
             });
             this.previousStackLength = currentStackLength;
             this.previousMemoryLength = currentMemoryLength;
-            this.count++;
             this.stepError = false;
         }
         else {
@@ -106,7 +104,7 @@ let x = {
     postStep: function(log, db) {
         let lastStep = this.trace["step"].at(-1);
         if (!this.stepError) {
-            // lastStep["cost"] = log.getCost();
+            lastStep["cost"] = log.getCost();
             lastStep["refund"] = log.getRefund();
         }
     },
@@ -140,4 +138,4 @@ let x = {
     fault: function(log, db) {
         this.step(log, db);
     }
-}
+};

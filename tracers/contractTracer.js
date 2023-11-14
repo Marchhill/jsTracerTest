@@ -11,4 +11,4 @@ let x = {
     fault: function(log, db) {
         this.step(log, db);
     }
-}
+};
