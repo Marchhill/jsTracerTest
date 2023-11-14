@@ -5,7 +5,9 @@ let x = {
         this.trace["config"] = config;
         this.trace["step"] = [];
         this.trace["callStack"] = [];
-        this.count = 0;
+        this.trace["contract"] = [];
+        this.stepError = false;
+        this.logContract = true;
         this.hash = toWord(Array(31).fill(1).concat([1]));
         this.previousStackLength = 0;
         this.previousMemoryLength = 0;
@@ -21,6 +23,7 @@ let x = {
                 "value": callFrame.getValue()
             }
         });
+        this.logContract = true;
     },
     exit: function(frameResult) {
         this.trace["callStack"].push({
@@ -30,6 +33,7 @@ let x = {
                 "error": frameResult.getError()
             }
         });
+        this.logContract = true;
     },
     step: function(log, db) {
         if (log.getError() === undefined) {
@@ -46,8 +50,8 @@ let x = {
             let newMemorySlice = memoryExpanded ? log.memory.slice(Math.max(this.previousMemoryLength, currentMemoryLength - 10), currentMemoryLength) : [];
             let newMemoryItem = memoryExpanded && currentMemoryLength >= 32 ? log.memory.getUint(currentMemoryLength - 32) : 0;
 
-            if (this.count == 0) {
-                this.trace["contract"] = {
+            if (this.logContract) {
+                this.trace["contract"].push({
                     "caller": log.contract.getCaller(),
                     "address": toAddress(toHex(contractAddress)),
                     "value": log.contract.getValue(),
@@ -59,12 +63,14 @@ let x = {
                     "stateString": db.getState(contractAddress, this.hash).toString(16),
                     "exists": db.exists(contractAddress),
                     "randomexists": db.exists(this.randomAddress)
-                };
+                });
+                this.logContract = false;
             }
 
             this.trace["step"].push({
                 "op": {
-                    "isPush": log.op.isPush(),
+                    // known geth bug
+                    // "isPush": log.op.isPush(),
                     "asString": log.op.toString(),
                     "asNumber": log.op.toNumber()
                 },
@@ -82,22 +88,25 @@ let x = {
                 },
                 "pc": log.getPC(),
                 "gas": log.getGas(),
-                "cost": log.getCost(),
+                // potential bug?
+                // "cost": log.getCost(),
                 "depth": log.getDepth(),
                 "refund": log.getRefund()
             });
             this.previousStackLength = currentStackLength;
             this.previousMemoryLength = currentMemoryLength;
             this.count++;
+            this.stepError = false;
         }
         else {
             this.trace["step"].push({"error": log.getError()});
+            this.stepError = true;
         }
     },
     postStep: function(log, db) {
         let lastStep = this.trace["step"].at(-1);
-        if (lastStep["cost"] !== undefined) {
-            lastStep["cost"] = log.getCost();
+        if (!this.stepError) {
+            // lastStep["cost"] = log.getCost();
             lastStep["refund"] = log.getRefund();
         }
     },
