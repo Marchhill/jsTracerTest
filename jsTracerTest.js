@@ -23,7 +23,8 @@ if (error) {
 }
 
 const TRACERS = [allTracer.slice(6, -1)];
-
+// test these transaction diffs on startup
+const STARTUP_TRANSACTIONS = []
 
 class TransactionListener {
     constructor(url) {
@@ -166,5 +167,10 @@ class TraceComparator {
 }
 
 const traceComparator = new TraceComparator(NETHERMIND_SEPOLIA_LOCAL, GETH_SEPOLIA, TRACERS);
+
+for (let tx of STARTUP_TRANSACTIONS) {
+    traceComparator.onTransaction(tx);
+}
+
 const transactionListener = new TransactionListener(WEBSOCKET_CLIENT_IP);
 transactionListener.setTransactionCallback(traceComparator.onTransaction);
