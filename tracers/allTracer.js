@@ -13,11 +13,13 @@ let x = {
         this.previousMemoryLength = 0;
     },
     enter: function(callFrame) {
+        let to = callFrame.getTo();
         this.trace["callStack"].push({
             "enter": {
                 "type": callFrame.getType(),
                 "from": callFrame.getFrom(),
-                "to": callFrame.getTo(),
+                "to": to,
+                "isPrecompiled": isPrecompiled(to),
                 "input": callFrame.getInput(),
                 "gas": callFrame.getGas(),
                 "value": callFrame.getValue()
@@ -38,6 +40,8 @@ let x = {
     step: function(log, db) {
         if (log.getError() === undefined) {
             let contractAddress = log.contract.getAddress();
+            let nonce = db.getNonce(contractAddress);
+            let opString = log.op.toString();
 
             let currentStackLength = log.stack.length();
             let topStackItem = currentStackLength > 0 ? log.stack.peek(0) : 0;
@@ -57,7 +61,7 @@ let x = {
                     "value": log.contract.getValue(),
                     "input": log.contract.getInput(),
                     "balance": db.getBalance(contractAddress),
-                    "nonce": db.getNonce(contractAddress),
+                    "nonce": nonce,
                     "code": db.getCode(contractAddress),
                     "state": db.getState(contractAddress, this.hash),
                     "stateString": db.getState(contractAddress, this.hash).toString(16),
@@ -67,11 +71,11 @@ let x = {
                 this.logContract = false;
             }
 
-            this.trace["step"].push({
+            let stepData = {
                 "op": {
                     // known geth bug
                     // "isPush": log.op.isPush(),
-                    "asString": log.op.toString(),
+                    "asString": opString,
                     "asNumber": log.op.toNumber()
                 },
                 "stack": {
@@ -91,7 +95,21 @@ let x = {
                 "cost": log.getCost(),
                 "depth": log.getDepth(),
                 "refund": log.getRefund()
-            });
+            };
+            
+            if (opString == "CREATE") {
+                stepData["createContract"] = toContract(contractAddress, nonce);
+            }
+            else if (opString == "CREATE2") {
+                // stack: salt, size, offset, endowment
+                var offset = log.stack.peek(1).valueOf()
+                var size = log.stack.peek(2).valueOf()
+                var end = offset + size
+                stepData["create2Contract"] = toContract2(contractAddress, log.stack.peek(3).toString(16), log.memory.slice(offset, end));
+            }
+
+            this.trace["step"].push(stepData);
+
             this.previousStackLength = currentStackLength;
             this.previousMemoryLength = currentMemoryLength;
             this.stepError = false;
@@ -116,6 +134,7 @@ let x = {
                 "from": ctx.from,
                 "to": ctx.to,
                 "input": ctx.input,
+                "inputSlice": slice(ctx.input, 0, Math.min(4, ctx.input.length)),
                 "gas": ctx.gas,
                 "gasUsed": ctx.gasUsed,
                 "gasPrice": ctx.gasPrice,
