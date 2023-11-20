@@ -6,7 +6,7 @@ let x = {
         this.trace["step"] = [];
         this.trace["callStack"] = [];
         this.trace["contract"] = [];
-        this.stepError = false;
+        this.wasFault = false;
         this.logContract = true;
         this.hash = toWord(Array(31).fill(1).concat([1]));
         this.previousStackLength = 0;
@@ -112,11 +112,7 @@ let x = {
 
             this.previousStackLength = currentStackLength;
             this.previousMemoryLength = currentMemoryLength;
-            this.stepError = false;
-        }
-        else {
-            this.trace["step"].push({"error": log.getError()});
-            this.stepError = true;
+            this.wasFault = false;
         }
     },
     postStep: function(log, db) {
@@ -152,9 +148,16 @@ let x = {
                 "randomexists": db.exists(this.randomAddress)
             }
         };
+
+        // delete this.trace["config"];
+        // delete this.trace["step"];
+        // delete this.trace["callStack"];
+        // delete this.trace["contract"];
+        // delete this.trace["result"];
         return this.trace;
     },
     fault: function(log, db) {
-        this.step(log, db);
+        this.trace["step"].push({"fault": log.getError()});
+        this.wasFault = true;
     }
 };

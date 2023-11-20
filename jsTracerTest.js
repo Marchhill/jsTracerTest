@@ -100,7 +100,6 @@ class Tracer {
             if (res["error"] !== undefined) {
                 console.log(this.name + " : " + tx);
                 console.log(res);
-                // console.log(this.name + " : " + res["error"]["message"]);
             }
             onResponse(res["result"]);
         });
@@ -120,16 +119,18 @@ class TraceComparator {
         let fileStream = fs.createWriteStream("./diffs/" + tx.slice(2) + ".diff");
         fileStream.once('open', (fd) => {
             let traceDiff = diff(trace1, trace2);
-            fileStream.write("diff: " + JSON.stringify(traceDiff) + "\n");
-            if ('step' in traceDiff) {
-                fileStream.write("step diff:\n");
-                for (const instrNumber in traceDiff['step']) {
-                    fileStream.write("nethermind #" + instrNumber + " : " + JSON.stringify(trace1['step'][instrNumber]) + "\n");
-                    fileStream.write("geth #" + instrNumber + " : " + JSON.stringify(trace2['step'][instrNumber]) + "\n");
-                }
-            }
-            fileStream.write("nethermind: " + JSON.stringify(trace1) + "\n");
-            fileStream.write("geth: " + JSON.stringify(trace2) + "\n");
+            fileStream.write("{\n");
+            fileStream.write("\"diff\": " + JSON.stringify(traceDiff) + ",\n");
+            // if ('step' in traceDiff) {
+            //     fileStream.write("step diff:\n");
+            //     for (const instrNumber in traceDiff['step']) {
+            //         fileStream.write("nethermind #" + instrNumber + " : " + JSON.stringify(trace1['step'][instrNumber]) + "\n");
+            //         fileStream.write("geth #" + instrNumber + " : " + JSON.stringify(trace2['step'][instrNumber]) + "\n");
+            //     }
+            // }
+            fileStream.write("\"nethermind\": " + JSON.stringify(trace1) + ",\n");
+            fileStream.write("\"geth\": " + JSON.stringify(trace2) + "\n");
+            fileStream.write("}");
         });
     }
     
